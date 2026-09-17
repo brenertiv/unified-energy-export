@@ -22,8 +22,6 @@ import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
-import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import Papa from 'papaparse';
 import {
   fieldSumForUtility,
@@ -52,13 +50,11 @@ const NUMBER_FORMAT = new Intl.NumberFormat('en-US', {
 });
 
 const UTILITY_COL_WIDTH = 220;
-const UNIT_COL_WIDTH = 80;
 const PERIOD_COL_WIDTH = 108;
 const GROUP_HEADER_HEIGHT = 36;
 const COLUMN_HEADER_HEIGHT = 40;
 const ROW_HEIGHT = 52;
-const PINNED_UNIT_LEFT = UTILITY_COL_WIDTH;
-const STICKY_LABEL_LEFT = UTILITY_COL_WIDTH + UNIT_COL_WIDTH + 8;
+const STICKY_LABEL_LEFT = UTILITY_COL_WIDTH + 8;
 
 const toolbarButtonSx = { textTransform: 'none' } as const;
 
@@ -255,6 +251,41 @@ function toSpreadsheetXml(headers: string[], rows: Array<Array<string | number>>
 </Workbook>`;
 }
 
+const groupChevronButtonSx = {
+  p: 0.25,
+  '@media (prefers-reduced-motion: no-preference)': {
+    '& .group-chevron': {
+      transition: 'transform 0.15s cubic-bezier(0.2, 0, 0, 1)',
+    },
+  },
+} as const;
+
+function GroupChevronButton({
+  expanded,
+  label,
+  onClick,
+}: {
+  expanded: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <IconButton
+      size="small"
+      aria-label={label}
+      aria-expanded={expanded}
+      onClick={onClick}
+      sx={groupChevronButtonSx}
+    >
+      <KeyboardArrowRightIcon
+        className="group-chevron"
+        fontSize="small"
+        sx={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+      />
+    </IconButton>
+  );
+}
+
 function stickyUtilitySx(isHeader: boolean) {
   return {
     position: 'sticky',
@@ -263,20 +294,6 @@ function stickyUtilitySx(isHeader: boolean) {
     width: UTILITY_COL_WIDTH,
     minWidth: UTILITY_COL_WIDTH,
     maxWidth: UTILITY_COL_WIDTH,
-    bgcolor: 'background.paper',
-    overflow: 'hidden',
-    isolation: 'isolate',
-  } as const;
-}
-
-function stickyUnitSx(isHeader: boolean) {
-  return {
-    position: 'sticky',
-    left: PINNED_UNIT_LEFT,
-    zIndex: isHeader ? 4 : 3,
-    width: UNIT_COL_WIDTH,
-    minWidth: UNIT_COL_WIDTH,
-    maxWidth: UNIT_COL_WIDTH,
     bgcolor: 'background.paper',
     borderRight: 1,
     borderColor: 'divider',
@@ -494,6 +511,8 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
     setSourceDrawerOpen(true);
   }, []);
 
+  const anyGroupExpanded = groups.some((group) => !collapsedUtilities.has(group.utility));
+
   const setAllGroupExpansion = useCallback(
     (expanded: boolean) => {
       setCollapsedUtilities(expanded ? new Set() : new Set(utilities));
@@ -632,24 +651,6 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
         >
           Compare 1yr
         </ToggleButton>
-        <Tooltip title="Expand">
-          <IconButton
-            size="small"
-            aria-label="Expand"
-            onClick={() => setAllGroupExpansion(true)}
-          >
-            <UnfoldMoreIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Collapse">
-          <IconButton
-            size="small"
-            aria-label="Collapse"
-            onClick={() => setAllGroupExpansion(false)}
-          >
-            <UnfoldLessIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
         <Tooltip title="Download">
           <IconButton
             id="download-button"
@@ -714,10 +715,10 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
             },
             '& tbody td': {
               overflow: 'hidden',
-              bgcolor: 'background.paper',
+              bgcolor: 'grey.50',
             },
             '& tbody tr[data-row-type="group"] td': {
-              bgcolor: 'grey.50',
+              bgcolor: 'background.paper',
               fontWeight: 600,
             },
             '& tbody tr:hover td': {
@@ -739,41 +740,23 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
                   fontWeight: 600,
                 }}
               >
-                <Box
+                <Stack
+                  direction="row"
+                  spacing={0.25}
                   sx={{
                     height: COLUMN_HEADER_HEIGHT,
-                    display: 'flex',
                     alignItems: 'center',
-                    px: 2,
+                    px: 1,
                     py: 0.75,
                   }}
                 >
+                  <GroupChevronButton
+                    expanded={anyGroupExpanded}
+                    label={anyGroupExpanded ? 'Collapse all' : 'Expand all'}
+                    onClick={() => setAllGroupExpansion(!anyGroupExpanded)}
+                  />
                   Utility
-                </Box>
-              </TableCell>
-              <TableCell
-                rowSpan={2}
-                className="usage-pinned"
-                sx={{
-                  ...stickyUnitSx(true),
-                  top: 0,
-                  height: GROUP_HEADER_HEIGHT + COLUMN_HEADER_HEIGHT,
-                  p: 0,
-                  verticalAlign: 'bottom',
-                  fontWeight: 600,
-                }}
-              >
-                <Box
-                  sx={{
-                    height: COLUMN_HEADER_HEIGHT,
-                    display: 'flex',
-                    alignItems: 'center',
-                    px: 2,
-                    py: 0.75,
-                  }}
-                >
-                  Unit
-                </Box>
+                </Stack>
               </TableCell>
               {columnGroups.map((group) => (
                 <TableCell
@@ -915,33 +898,31 @@ function UtilityGroupRows({
       <TableRow data-row-type="group" hover={false}>
         <TableCell className="usage-pinned" sx={{ ...stickyUtilitySx(false), py: 0, px: 1 }}>
           <Stack direction="row" spacing={0.25} sx={{ alignItems: 'center', minHeight: ROW_HEIGHT }}>
-            <IconButton
-              size="small"
-              aria-label={expanded ? `Collapse ${group.utility}` : `Expand ${group.utility}`}
-              aria-expanded={expanded}
+            <GroupChevronButton
+              expanded={expanded}
+              label={expanded ? `Collapse ${group.utility}` : `Expand ${group.utility}`}
               onClick={onToggle}
-              sx={{
-                p: 0.25,
-                '@media (prefers-reduced-motion: no-preference)': {
-                  '& .group-chevron': {
-                    transition: 'transform 0.15s cubic-bezier(0.2, 0, 0, 1)',
-                  },
-                },
-              }}
-            >
-              <KeyboardArrowRightIcon
-                className="group-chevron"
-                fontSize="small"
-                sx={{ transform: expanded ? 'rotate(90deg)' : 'none' }}
-              />
-            </IconButton>
-            <Typography component="span" sx={{ fontSize: 13, fontWeight: 650, whiteSpace: 'nowrap' }}>
-              {group.utility}
-            </Typography>
+            />
+            <Stack spacing="1px" sx={{ minWidth: 0, justifyContent: 'center' }}>
+              <Typography component="span" sx={{ fontSize: 13, fontWeight: 650, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+                {group.utility}
+              </Typography>
+              {group.unit ? (
+                <Box
+                  component="span"
+                  sx={{
+                    fontSize: 11,
+                    lineHeight: 1.2,
+                    fontWeight: 500,
+                    whiteSpace: 'nowrap',
+                    color: 'grey.500',
+                  }}
+                >
+                  {group.unit}
+                </Box>
+              ) : null}
+            </Stack>
           </Stack>
-        </TableCell>
-        <TableCell className="usage-pinned" sx={{ ...stickyUnitSx(false), py: 0, px: 1.25, whiteSpace: 'nowrap' }}>
-          {group.unit}
         </TableCell>
         {periodColumns.map((column) => {
           const value = sumFieldSameUnit(group.rows, column.field);
@@ -1000,12 +981,6 @@ function UtilityGroupRows({
                 }}
               >
                 {String(row.property)}
-              </TableCell>
-              <TableCell
-                className="usage-pinned"
-                sx={{ ...stickyUnitSx(false), py: 0, px: 1.25, whiteSpace: 'nowrap' }}
-              >
-                {String(row.unit)}
               </TableCell>
               {periodColumns.map((column) => {
                 const value = row[column.field];
