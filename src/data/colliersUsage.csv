@@ -1,0 +1,145 @@
+portfolio,property,address,utility_type,unit,period_number,period_start,period_end,consumption
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,1,2024-09-27,2024-10-26,73181.74
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,2,2024-10-27,2024-11-25,79109.76
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,3,2024-11-26,2024-12-25,75605.02
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,4,2024-12-26,2025-01-24,74055.29
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,5,2025-01-25,2025-02-23,78991.34
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,6,2025-02-24,2025-03-25,73653.5
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,7,2025-03-26,2025-04-24,73529.75
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,8,2025-04-25,2025-05-24,79092.47
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,9,2025-05-25,2025-06-23,112838.03
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,10,2025-06-24,2025-07-23,114439.16
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,11,2025-07-24,2025-08-22,100502.84
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,12,2025-08-23,2025-09-21,91610.4
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,13,2025-09-22,2025-10-21,77181.57
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,14,2025-10-22,2025-11-20,77326.13
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,15,2025-11-21,2025-12-20,74513.39
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,16,2025-12-21,2026-01-19,72587.77
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,17,2026-01-20,2026-02-18,72924.55
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,18,2026-02-19,2026-03-20,67689.12
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,19,2026-03-21,2026-04-19,70829.69
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,20,2026-04-20,2026-05-19,85332.27
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,21,2026-05-20,2026-06-18,110448.79
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,22,2026-06-19,2026-07-18,117617.5
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,23,2026-07-19,2026-08-17,108247.97
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Electricity,kWh,24,2026-08-18,2026-09-16,48421.94
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,1,2024-09-27,2024-10-26,0.0
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,2,2024-10-27,2024-11-25,457.5
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,3,2024-11-26,2024-12-25,91.5
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,4,2024-12-26,2025-01-24,0.0
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,5,2025-01-25,2025-02-23,444.39
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,6,2025-02-24,2025-03-25,96.61
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,7,2025-03-26,2025-04-24,0.0
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,8,2025-04-25,2025-05-24,421.94
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,9,2025-05-25,2025-06-23,123.06
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,10,2025-06-24,2025-07-23,0.0
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,11,2025-07-24,2025-08-22,393.87
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,12,2025-08-23,2025-09-21,161.13
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,13,2025-09-22,2025-10-21,0.0
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,14,2025-10-22,2025-11-20,248.67
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,15,2025-11-21,2025-12-20,124.33
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,16,2025-12-21,2026-01-19,0.0
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,17,2026-01-20,2026-02-18,307.93
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,18,2026-02-19,2026-03-20,171.07
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,19,2026-03-21,2026-04-19,0.0
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,20,2026-04-20,2026-05-19,421.68
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,21,2026-05-20,2026-06-18,266.32
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,22,2026-06-19,2026-07-18,0.0
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,23,2026-07-19,2026-08-17,0.0
+Colliers,1140 Broadway,"1140 Broadway, New York, NY",Water,ccf,24,2026-08-18,2026-09-16,0.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,1,2024-09-27,2024-10-26,203081.07
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,2,2024-10-27,2024-11-25,204515.3
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,3,2024-11-26,2024-12-25,231876.67
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,4,2024-12-26,2025-01-24,228800.71
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,5,2025-01-25,2025-02-23,230190.42
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,6,2025-02-24,2025-03-25,187455.94
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,7,2025-03-26,2025-04-24,201705.5
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,8,2025-04-25,2025-05-24,324069.15
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,9,2025-05-25,2025-06-23,481360.35
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,10,2025-06-24,2025-07-23,321253.71
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,11,2025-07-24,2025-08-22,234501.29
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,12,2025-08-23,2025-09-21,225772.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,13,2025-09-22,2025-10-21,197808.55
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,14,2025-10-22,2025-11-20,198332.22
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,15,2025-11-21,2025-12-20,217129.01
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,16,2025-12-21,2026-01-19,218971.23
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,17,2026-01-20,2026-02-18,204349.6
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,18,2026-02-19,2026-03-20,191595.73
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,19,2026-03-21,2026-04-19,196229.34
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,20,2026-04-20,2026-05-19,224341.85
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,21,2026-05-20,2026-06-18,258859.18
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,22,2026-06-19,2026-07-18,263229.69
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,23,2026-07-19,2026-08-17,111364.71
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Electricity,kWh,24,2026-08-18,2026-09-16,0.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,1,2024-09-27,2024-10-26,296.9
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,2,2024-10-27,2024-11-25,57.1
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,3,2024-11-26,2024-12-25,0.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,4,2024-12-26,2025-01-24,250.06
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,5,2025-01-25,2025-02-23,72.94
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,6,2025-02-24,2025-03-25,0.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,7,2025-03-26,2025-04-24,524.8
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,8,2025-04-25,2025-05-24,131.2
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,9,2025-05-25,2025-06-23,0.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,10,2025-06-24,2025-07-23,255.97
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,11,2025-07-24,2025-08-22,89.03
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,12,2025-08-23,2025-09-21,0.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,13,2025-09-22,2025-10-21,224.9
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,14,2025-10-22,2025-11-20,107.1
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,15,2025-11-21,2025-12-20,0.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,16,2025-12-21,2026-01-19,212.06
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,17,2026-01-20,2026-02-18,133.94
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,18,2026-02-19,2026-03-20,0.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,19,2026-03-21,2026-04-19,240.03
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,20,2026-04-20,2026-05-19,138.97
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,21,2026-05-20,2026-06-18,0.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,22,2026-06-19,2026-07-18,0.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,23,2026-07-19,2026-08-17,0.0
+Colliers,136 Madison Ave,"136 Madison Ave, New York, NY",Water,ccf,24,2026-08-18,2026-09-16,0.0
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,1,2024-09-27,2024-10-26,451269.47
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,2,2024-10-27,2024-11-25,508745.3
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,3,2024-11-26,2024-12-25,463861.12
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,4,2024-12-26,2025-01-24,475749.48
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,5,2025-01-25,2025-02-23,489270.98
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,6,2025-02-24,2025-03-25,435321.73
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,7,2025-03-26,2025-04-24,457026.92
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,8,2025-04-25,2025-05-24,459679.15
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,9,2025-05-25,2025-06-23,563861.95
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,10,2025-06-24,2025-07-23,600514.5
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,11,2025-07-24,2025-08-22,545899.29
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,12,2025-08-23,2025-09-21,513459.81
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,13,2025-09-22,2025-10-21,463806.51
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,14,2025-10-22,2025-11-20,516562.39
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,15,2025-11-21,2025-12-20,530975.71
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,16,2025-12-21,2026-01-19,547630.35
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,17,2026-01-20,2026-02-18,597261.22
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,18,2026-02-19,2026-03-20,560175.88
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,19,2026-03-21,2026-04-19,494024.57
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,20,2026-04-20,2026-05-19,493284.14
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,21,2026-05-20,2026-06-18,564072.93
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,22,2026-06-19,2026-07-18,563846.43
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,23,2026-07-19,2026-08-17,502474.9
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Electricity,kWh,24,2026-08-18,2026-09-16,222003.87
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,1,2024-09-27,2024-10-26,1069.29
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,2,2024-10-27,2024-11-25,3272.58
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,3,2024-11-26,2024-12-25,4680.94
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,4,2024-12-26,2025-01-24,5066.13
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,5,2025-01-25,2025-02-23,3342.61
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,6,2025-02-24,2025-03-25,2220.55
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,7,2025-03-26,2025-04-24,427.17
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,8,2025-04-25,2025-05-24,3.92
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,9,2025-05-25,2025-06-23,2.98
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,10,2025-06-24,2025-07-23,1.44
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,11,2025-07-24,2025-08-22,0.26
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,12,2025-08-23,2025-09-21,436.1
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,13,2025-09-22,2025-10-21,2059.29
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,14,2025-10-22,2025-11-20,4260.95
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,15,2025-11-21,2025-12-20,5049.83
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,16,2025-12-21,2026-01-19,5721.32
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,17,2026-01-20,2026-02-18,4581.37
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,18,2026-02-19,2026-03-20,2478.76
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,19,2026-03-21,2026-04-19,894.05
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,20,2026-04-20,2026-05-19,107.56
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,21,2026-05-20,2026-06-18,1.97
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,22,2026-06-19,2026-07-18,0.8
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,23,2026-07-19,2026-08-17,0.0
+Colliers,28-40 W 23rd St,"28-40 W 23rd St, New York, NY",Natural Gas,thm,24,2026-08-18,2026-09-16,0.0
