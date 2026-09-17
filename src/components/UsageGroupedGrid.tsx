@@ -10,29 +10,26 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
 import ToggleButton from '@mui/material/ToggleButton';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
-import {
-  DataGridPremium,
-  GRID_AGGREGATION_FUNCTIONS,
-  GRID_ROW_GROUPING_SINGLE_GROUPING_FIELD,
-  gridRowTreeSelector,
-  useGridApiRef,
-  type GridCellParams,
-  type GridColDef,
-  type GridColumnGroupingModel,
-  type GridRenderCellParams,
-  type GridRowGroupingModel,
-} from '@mui/x-data-grid-premium';
 import CloseIcon from '@mui/icons-material/Close';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import Papa from 'papaparse';
 import {
   fieldSumForUtility,
+  groupRowsByUtility,
   periodVolumes,
-  sumSameUnit,
+  sumFieldSameUnit,
   uniqueUtilities,
 } from '../lib/aggregations';
 import {
@@ -54,26 +51,14 @@ const NUMBER_FORMAT = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 });
 
-const ROW_GROUPING_MODEL: GridRowGroupingModel = ['utility_type'];
-
-const groupingColDef = {
-  headerName: 'Utility',
-  minWidth: 220,
-  width: 220,
-  leafField: 'property',
-};
-
-const columnVisibilityModel = {
-  address: false,
-  portfolio: false,
-  utility_type: false,
-  property: false,
-};
-
-const aggregationFunctions = {
-  ...GRID_AGGREGATION_FUNCTIONS,
-  sumSameUnit,
-};
+const UTILITY_COL_WIDTH = 220;
+const UNIT_COL_WIDTH = 80;
+const PERIOD_COL_WIDTH = 108;
+const GROUP_HEADER_HEIGHT = 36;
+const COLUMN_HEADER_HEIGHT = 40;
+const ROW_HEIGHT = 52;
+const PINNED_UNIT_LEFT = UTILITY_COL_WIDTH;
+const STICKY_LABEL_LEFT = UTILITY_COL_WIDTH + UNIT_COL_WIDTH + 8;
 
 const toolbarButtonSx = { textTransform: 'none' } as const;
 
@@ -94,6 +79,21 @@ const heatmapSelectSx = {
 } as const;
 
 type HeatmapSelectValue = 'off' | BaselineMode;
+
+type PeriodFieldColumn = {
+  field: string;
+  headerName: string;
+  exportHeaderName: string;
+  description?: string;
+  prior: boolean;
+  period: PeriodColumn;
+};
+
+type ColumnGroup = {
+  id: string;
+  headerName: string;
+  children: PeriodFieldColumn[];
+};
 
 function formatConsumption(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) {
@@ -197,7 +197,6 @@ function UsageCellTooltip({
   );
 }
 
-
 function yoyChangeColor(relative: number) {
   if (relative < 0) {
     return 'oklch(0.4 0.12 255)';
@@ -208,22 +207,6 @@ function yoyChangeColor(relative: number) {
   return 'text.secondary';
 }
 
-function comparePriorValue(
-  params: GridRenderCellParams<TimelineRow, number | null>,
-  period: PeriodColumn,
-  rows: TimelineRow[],
-) {
-  if (params.rowNode.type === 'leaf') {
-    const value = params.row[period.priorField];
-    return typeof value === 'number' ? value : undefined;
-  }
-  const utility = heatmapUtility(params);
-  if (!utility) {
-    return undefined;
-  }
-  return fieldSumForUtility(rows, utility, period.priorField);
-}
-
 function periodRangeDescription(start?: Date, end?: Date) {
   if (!start || !end) {
     return undefined;
@@ -231,43 +214,75 @@ function periodRangeDescription(start?: Date, end?: Date) {
   return `${start.toLocaleDateString()} – ${end.toLocaleDateString()}`;
 }
 
-function getAggregationPosition(groupNode: { depth: number } | null) {
-  if (groupNode == null || groupNode.depth === -1) {
-    return null;
-  }
-  return 'inline' as const;
+function escapeXml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
 
-function heatmapUtility(params: GridRenderCellParams<TimelineRow>): string | undefined {
-  if (params.rowNode.type === 'group') {
-    return params.rowNode.groupingKey == null ? undefined : String(params.rowNode.groupingKey);
-  }
-  return params.row.utility_type ? String(params.row.utility_type) : undefined;
+function downloadFile(filename: string, contents: string, mime: string) {
+  const blob = new Blob([contents], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
-function shouldHeatmapRow(rowNode: { type: string; depth?: number }): boolean {
-  if (rowNode.type === 'leaf') {
-    return true;
-  }
-  return rowNode.type === 'group' && (rowNode.depth ?? -1) >= 0;
+function toSpreadsheetXml(headers: string[], rows: Array<Array<string | number>>) {
+  const cellXml = (value: string | number) => {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return `<Cell><Data ss:Type="Number">${value}</Data></Cell>`;
+    }
+    return `<Cell><Data ss:Type="String">${escapeXml(String(value))}</Data></Cell>`;
+  };
+  const headerRow = `<Row>${headers.map((header) => cellXml(header)).join('')}</Row>`;
+  const body = rows.map((row) => `<Row>${row.map((value) => cellXml(value)).join('')}</Row>`).join('');
+  return `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Worksheet ss:Name="Usage">
+  <Table>
+   ${headerRow}
+   ${body}
+  </Table>
+ </Worksheet>
+</Workbook>`;
 }
 
-function resolveDataSource(
-  params: Pick<GridRenderCellParams<TimelineRow>, 'rowNode' | 'row'>,
-  field: string,
-  rows: TimelineRow[],
-): CellDataSource {
-  if (params.rowNode.type === 'leaf') {
-    return getCellDataSource(String(params.row.id), field);
-  }
-  const utility =
-    params.rowNode.type === 'group' && params.rowNode.groupingKey != null
-      ? String(params.rowNode.groupingKey)
-      : undefined;
-  if (!utility) {
-    return 'Utility';
-  }
-  return getGroupDataSource(rows, utility, field);
+function stickyUtilitySx(isHeader: boolean) {
+  return {
+    position: 'sticky',
+    left: 0,
+    zIndex: isHeader ? 4 : 3,
+    width: UTILITY_COL_WIDTH,
+    minWidth: UTILITY_COL_WIDTH,
+    maxWidth: UTILITY_COL_WIDTH,
+    bgcolor: 'background.paper',
+    overflow: 'hidden',
+    isolation: 'isolate',
+  } as const;
+}
+
+function stickyUnitSx(isHeader: boolean) {
+  return {
+    position: 'sticky',
+    left: PINNED_UNIT_LEFT,
+    zIndex: isHeader ? 4 : 3,
+    width: UNIT_COL_WIDTH,
+    minWidth: UNIT_COL_WIDTH,
+    maxWidth: UNIT_COL_WIDTH,
+    bgcolor: 'background.paper',
+    borderRight: 1,
+    borderColor: 'divider',
+    overflow: 'hidden',
+    isolation: 'isolate',
+  } as const;
 }
 
 function UsageCell({
@@ -279,6 +294,7 @@ function UsageCell({
   priorValue,
   showYoyChange,
   dataSource,
+  onSelect,
 }: {
   value: number | null | undefined;
   baseline: number | undefined;
@@ -288,6 +304,7 @@ function UsageCell({
   priorValue?: number;
   showYoyChange: boolean;
   dataSource: CellDataSource;
+  onSelect?: () => void;
 }) {
   const hasValue = typeof value === 'number' && Number.isFinite(value);
   const formatted = formatConsumption(hasValue ? value : undefined);
@@ -303,6 +320,46 @@ function UsageCell({
   ) : (
     'No data'
   );
+  const content = (
+    <>
+      <Box component="span" sx={{ lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+        {formatted}
+      </Box>
+      {yoy ? (
+        <Box
+          component="span"
+          sx={{
+            fontSize: 11,
+            lineHeight: 1.2,
+            fontWeight: 500,
+            whiteSpace: 'nowrap',
+            fontVariantNumeric: 'tabular-nums',
+            color: yoyChangeColor(yoy.relative),
+          }}
+        >
+          {yoy.label}
+        </Box>
+      ) : null}
+    </>
+  );
+
+  const cellSx = {
+    width: '100%',
+    height: '100%',
+    minHeight: ROW_HEIGHT,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: '1px',
+    px: '10px',
+    bgcolor: 'transparent',
+    backgroundImage: fill ? `linear-gradient(${fill}, ${fill})` : 'none',
+    color: muted && !fill ? 'text.secondary' : 'text.primary',
+    opacity: muted ? 0.5 : 1,
+    overflow: 'hidden',
+  } as const;
+
   return (
     <Tooltip
       title={tooltip}
@@ -317,40 +374,27 @@ function UsageCell({
         },
       }}
     >
-      <Box
-        sx={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
-          gap: '1px',
-          px: '10px',
-          cursor: 'pointer',
-          bgcolor: fill,
-          color: muted && !fill ? 'text.secondary' : 'text.primary',
-        }}
-      >
-        <Box component="span" sx={{ lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-          {formatted}
+      {hasValue && onSelect ? (
+        <Box
+          component="button"
+          type="button"
+          onClick={onSelect}
+          sx={{
+            ...cellSx,
+            appearance: 'none',
+            border: 0,
+            margin: 0,
+            font: 'inherit',
+            textAlign: 'right',
+            cursor: 'pointer',
+            color: 'inherit',
+          }}
+        >
+          {content}
         </Box>
-        {yoy ? (
-          <Box
-            component="span"
-            sx={{
-              fontSize: 11,
-              lineHeight: 1.2,
-              fontWeight: 500,
-              whiteSpace: 'nowrap',
-              fontVariantNumeric: 'tabular-nums',
-              color: yoyChangeColor(yoy.relative),
-            }}
-          >
-            {yoy.label}
-          </Box>
-        ) : null}
-      </Box>
+      ) : (
+        <Box sx={cellSx}>{content}</Box>
+      )}
     </Tooltip>
   );
 }
@@ -362,7 +406,6 @@ type UsageGroupedGridProps = {
 };
 
 export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageGroupedGridProps) {
-  const apiRef = useGridApiRef();
   const [dataMode, setDataMode] = useState<DataMode>('actual');
   const [compareLastYear, setCompareLastYear] = useState(false);
   const [heatmapOn, setHeatmapOn] = useState(false);
@@ -371,10 +414,12 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
   const [windowRange, setWindowRange] = useState<WindowRange>(() => defaultWindowRange(periods.length));
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState<HTMLElement | null>(null);
   const [selectedUtility, setSelectedUtility] = useState('Electricity');
+  const [collapsedUtilities, setCollapsedUtilities] = useState<Set<string>>(() => new Set());
 
   const rows = dataMode === 'normalized' ? normalizedRows : actualRows;
   const baselines = useMemo(() => createBaselines(rows, periods), [rows, periods]);
   const utilities = useMemo(() => uniqueUtilities(rows), [rows]);
+  const groups = useMemo(() => groupRowsByUtility(rows), [rows]);
   const volumeUtility = utilities.includes(selectedUtility) ? selectedUtility : (utilities[0] ?? '');
   const volumes = useMemo(
     () => periodVolumes(rows, periods, volumeUtility),
@@ -385,153 +430,122 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
     [periods, windowRange],
   );
 
-  const valueFields = useMemo(() => {
-    if (!compareLastYear) {
-      return visiblePeriods.map((period) => period.field);
-    }
-    return visiblePeriods.flatMap((period) => [period.field, period.priorField]);
-  }, [compareLastYear, visiblePeriods]);
-
-  const aggregationModel = useMemo(
-    () => Object.fromEntries(valueFields.map((field) => [field, 'sumSameUnit'])),
-    [valueFields],
-  );
-
-  const columns = useMemo<GridColDef<TimelineRow>[]>(() => {
-    const dimensionColumns: GridColDef<TimelineRow>[] = [
-      { field: 'property', headerName: 'Building', width: 160, groupable: false },
-      { field: 'utility_type', headerName: 'Utility', width: 130, groupable: false },
-      { field: 'unit', headerName: 'Unit', width: 80, groupable: false },
-      { field: 'address', headerName: 'Address', width: 220, groupable: false },
-      { field: 'portfolio', headerName: 'Portfolio', width: 120, groupable: false },
-    ];
-
-    const periodColumns: GridColDef<TimelineRow>[] = visiblePeriods.flatMap((period) => {
-      const valueColumn = (field: string, headerName: string, description: string | undefined, prior: boolean) => {
-        const column: GridColDef<TimelineRow> = {
-          field,
-          headerName,
-          description,
-          type: 'number',
-          width: 108,
-          groupable: false,
-          aggregable: true,
-          availableAggregationFunctions: ['sumSameUnit'],
-          headerClassName: prior ? 'comparison-prior-header' : undefined,
-          valueGetter: (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null),
-          valueFormatter: (value) => formatConsumption(typeof value === 'number' ? value : undefined),
-          cellClassName: (params) => {
-            const classes: string[] = [];
-            if (prior) {
-              classes.push('comparison-prior');
-            }
-            if (shouldHeatmapRow(params.rowNode)) {
-              classes.push('heatmap-leaf');
-            }
-            return classes.join(' ');
-          },
-          renderCell: (params: GridRenderCellParams<TimelineRow, number | null>) => {
-            const utility = heatmapUtility(params);
-            const baseline =
-              params.rowNode.type === 'group' && utility
-                ? getUtilityGroupBaseline(baselines, baselineMode, rows, utility, period, prior)
-                : getCellBaseline(baselines, baselineMode, params.row, period, prior);
-            return (
-              <UsageCell
-                value={params.value}
-                baseline={baseline}
-                mode={baselineMode}
-                applyFill={heatmapOn && shouldHeatmapRow(params.rowNode)}
-                muted={prior}
-                priorValue={compareLastYear && !prior ? comparePriorValue(params, period, rows) : undefined}
-                showYoyChange={compareLastYear && !prior && shouldHeatmapRow(params.rowNode)}
-                dataSource={resolveDataSource(params, field, rows)}
-              />
-            );
-          },
+  const columnGroups = useMemo<ColumnGroup[]>(() => {
+    if (compareLastYear) {
+      return visiblePeriods.map((period) => {
+        const label = formatPeriodLabel(period.start);
+        const current: PeriodFieldColumn = {
+          field: period.field,
+          headerName: 'Current',
+          exportHeaderName: `${label} Current`,
+          description: periodRangeDescription(period.start, period.end),
+          prior: false,
+          period,
         };
-
-        return column;
-      };
-
-      const current = valueColumn(
-        period.field,
-        compareLastYear ? 'Current' : formatPeriodLabel(period.start),
-        periodRangeDescription(period.start, period.end),
-        false,
-      );
-
-      if (!compareLastYear) {
-        return [current];
-      }
-
-      return [
-        current,
-        valueColumn(
-          period.priorField,
-          'Last year',
-          period.priorStart
+        const prior: PeriodFieldColumn = {
+          field: period.priorField,
+          headerName: 'Last year',
+          exportHeaderName: `${label} Last year`,
+          description: period.priorStart
             ? `${periodRangeDescription(period.priorStart, period.priorEnd)} · same 30-day window last year`
             : 'Same 30-day window last year',
-          true,
-        ),
-      ];
-    });
-
-    return [...dimensionColumns, ...periodColumns];
-  }, [baselineMode, baselines, compareLastYear, heatmapOn, rows, visiblePeriods]);
-
-  const columnGroupingModel = useMemo<GridColumnGroupingModel>(() => {
-    if (compareLastYear) {
-      return visiblePeriods.map((period) => ({
-        groupId: period.field,
-        headerName: formatPeriodLabel(period.start),
-        children: [{ field: period.field }, { field: period.priorField }],
-      }));
+          prior: true,
+          period,
+        };
+        return {
+          id: period.field,
+          headerName: label,
+          children: [current, prior],
+        };
+      });
     }
 
-    const years = new Map<number, string[]>();
+    const years = new Map<number, PeriodFieldColumn[]>();
     for (const period of visiblePeriods) {
       const year = period.start.getFullYear();
-      const fields = years.get(year) ?? [];
-      fields.push(period.field);
-      years.set(year, fields);
+      const columns = years.get(year) ?? [];
+      columns.push({
+        field: period.field,
+        headerName: formatPeriodLabel(period.start),
+        exportHeaderName: formatPeriodLabel(period.start),
+        description: periodRangeDescription(period.start, period.end),
+        prior: false,
+        period,
+      });
+      years.set(year, columns);
     }
-    return [...years.entries()].map(([year, fields]) => ({
-      groupId: String(year),
+    return [...years.entries()].map(([year, children]) => ({
+      id: String(year),
       headerName: String(year),
-      children: fields.map((field) => ({ field })),
+      children,
     }));
   }, [compareLastYear, visiblePeriods]);
+
+  const periodColumns = useMemo(
+    () => columnGroups.flatMap((group) => group.children),
+    [columnGroups],
+  );
 
   const closeSourceDrawer = useCallback(() => {
     setSourceDrawerOpen(false);
   }, []);
 
-  const handleCellClick = useCallback(
-    (params: GridCellParams<TimelineRow>) => {
-      if (!valueFields.includes(params.field) || !shouldHeatmapRow(params.rowNode)) {
-        return;
-      }
-      if (typeof params.value !== 'number') {
-        return;
-      }
-      setSourceDrawerOpen(true);
-    },
-    [valueFields],
-  );
+  const openSourceDrawer = useCallback(() => {
+    setSourceDrawerOpen(true);
+  }, []);
 
   const setAllGroupExpansion = useCallback(
     (expanded: boolean) => {
-      const tree = gridRowTreeSelector(apiRef);
-      for (const node of Object.values(tree)) {
-        if (node.type === 'group' && node.depth >= 0) {
-          apiRef.current?.setRowChildrenExpansion(node.id, expanded);
-        }
-      }
+      setCollapsedUtilities(expanded ? new Set() : new Set(utilities));
     },
-    [apiRef],
+    [utilities],
   );
+
+  const toggleUtility = useCallback((utility: string) => {
+    setCollapsedUtilities((current) => {
+      const next = new Set(current);
+      if (next.has(utility)) {
+        next.delete(utility);
+      } else {
+        next.add(utility);
+      }
+      return next;
+    });
+  }, []);
+
+  const exportRows = useCallback(() => {
+    const headers = ['Utility', 'Building', 'Unit', ...periodColumns.map((column) => column.exportHeaderName)];
+    const data = groups.flatMap((group) =>
+      group.rows.map((row) => [
+        group.utility,
+        String(row.property),
+        String(row.unit),
+        ...periodColumns.map((column) => {
+          const value = row[column.field];
+          return typeof value === 'number' && Number.isFinite(value) ? value : '';
+        }),
+      ]),
+    );
+    return { headers, data };
+  }, [groups, periodColumns]);
+
+  const downloadCsv = useCallback(() => {
+    const { headers, data } = exportRows();
+    downloadFile(
+      'utilities-usage.csv',
+      Papa.unparse({ fields: headers, data }),
+      'text/csv;charset=utf-8',
+    );
+  }, [exportRows]);
+
+  const downloadExcel = useCallback(() => {
+    const { headers, data } = exportRows();
+    downloadFile(
+      'utilities-usage.xls',
+      toSpreadsheetXml(headers, data),
+      'application/vnd.ms-excel',
+    );
+  }, [exportRows]);
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -660,7 +674,7 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
         >
           <MenuItem
             onClick={() => {
-              apiRef.current?.exportDataAsCsv();
+              downloadCsv();
               setDownloadMenuAnchor(null);
             }}
           >
@@ -668,7 +682,7 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
           </MenuItem>
           <MenuItem
             onClick={() => {
-              void apiRef.current?.exportDataAsExcel();
+              downloadExcel();
               setDownloadMenuAnchor(null);
             }}
           >
@@ -685,67 +699,155 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
         selectedUtility={volumeUtility}
         onUtilityChange={setSelectedUtility}
       />
-      <Box sx={{ flex: 1, minHeight: 0 }}>
-        <DataGridPremium
-          apiRef={apiRef}
-          rows={rows}
-          columns={columns}
-          disablePivoting
-          rowGroupingModel={ROW_GROUPING_MODEL}
-          groupingColDef={groupingColDef}
-          columnVisibilityModel={columnVisibilityModel}
-          columnGroupingModel={columnGroupingModel}
-          aggregationModel={aggregationModel}
-          aggregationFunctions={aggregationFunctions}
-          getAggregationPosition={getAggregationPosition}
-          defaultGroupingExpansionDepth={1}
-          pinnedColumns={{
-            left: [GRID_ROW_GROUPING_SINGLE_GROUPING_FIELD, 'unit'],
-          }}
-          getRowId={(row) => row.id}
-          disableRowSelectionOnClick
-          onCellClick={handleCellClick}
-          onCellKeyDown={(params, event) => {
-            if (event.key !== 'Enter') {
-              return;
-            }
-            handleCellClick(params);
-          }}
-          columnGroupHeaderHeight={36}
+      <TableContainer sx={{ flex: 1, minHeight: 0, isolation: 'isolate' }}>
+        <Table
+          stickyHeader
+          aria-label="Utility usage by building and period"
           sx={{
-            border: 0,
-            height: '100%',
-            '--DataGrid-cellOffsetMultiplier': 3,
+            borderCollapse: 'separate',
+            borderSpacing: 0,
             fontVariantNumeric: 'tabular-nums',
-            '& .MuiDataGrid-aggregationColumnHeaderLabel': {
-              display: 'none',
+            '& .MuiTableCell-root': {
+              fontSize: 13,
+              borderBottom: 1,
+              borderColor: 'divider',
             },
-            '& .comparison-prior': {
-              opacity: 0.5,
-            },
-            '& .comparison-prior-header': {
-              opacity: 0.55,
-              '& .MuiDataGrid-columnHeaderTitle': {
-                color: 'text.secondary',
-                fontWeight: 400,
-              },
-            },
-            '& .heatmap-leaf': {
-              padding: 0,
+            '& tbody td': {
               overflow: 'hidden',
+              bgcolor: 'background.paper',
             },
-            '& .MuiDataGrid-columnHeader--filledGroup': {
-              '& .MuiDataGrid-columnHeaderTitleContainer': {
-                overflow: 'visible',
-              },
-              '& .MuiDataGrid-columnHeaderTitleContainerContent': {
-                position: 'sticky',
-                left: 8,
-              },
+            '& tbody tr[data-row-type="group"] td': {
+              bgcolor: 'grey.50',
+              fontWeight: 600,
+            },
+            '& tbody tr:hover td': {
+              bgcolor: 'grey.100',
             },
           }}
-        />
-      </Box>
+        >
+          <TableHead>
+            <TableRow>
+              <TableCell
+                rowSpan={2}
+                className="usage-pinned"
+                sx={{
+                  ...stickyUtilitySx(true),
+                  top: 0,
+                  height: GROUP_HEADER_HEIGHT + COLUMN_HEADER_HEIGHT,
+                  p: 0,
+                  verticalAlign: 'bottom',
+                  fontWeight: 600,
+                }}
+              >
+                <Box
+                  sx={{
+                    height: COLUMN_HEADER_HEIGHT,
+                    display: 'flex',
+                    alignItems: 'center',
+                    px: 2,
+                    py: 0.75,
+                  }}
+                >
+                  Utility
+                </Box>
+              </TableCell>
+              <TableCell
+                rowSpan={2}
+                className="usage-pinned"
+                sx={{
+                  ...stickyUnitSx(true),
+                  top: 0,
+                  height: GROUP_HEADER_HEIGHT + COLUMN_HEADER_HEIGHT,
+                  p: 0,
+                  verticalAlign: 'bottom',
+                  fontWeight: 600,
+                }}
+              >
+                <Box
+                  sx={{
+                    height: COLUMN_HEADER_HEIGHT,
+                    display: 'flex',
+                    alignItems: 'center',
+                    px: 2,
+                    py: 0.75,
+                  }}
+                >
+                  Unit
+                </Box>
+              </TableCell>
+              {columnGroups.map((group) => (
+                <TableCell
+                  key={group.id}
+                  colSpan={group.children.length}
+                  sx={{
+                    top: 0,
+                    height: GROUP_HEADER_HEIGHT,
+                    py: 0.75,
+                    px: 1.25,
+                    fontWeight: 600,
+                    bgcolor: 'background.paper',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      position: 'sticky',
+                      left: STICKY_LABEL_LEFT,
+                      width: 'max-content',
+                    }}
+                  >
+                    {group.headerName}
+                  </Box>
+                </TableCell>
+              ))}
+            </TableRow>
+            <TableRow>
+              {periodColumns.map((column) => (
+                <TableCell
+                  key={column.field}
+                  align="right"
+                  title={column.description}
+                  sx={{
+                    top: GROUP_HEADER_HEIGHT,
+                    height: COLUMN_HEADER_HEIGHT,
+                    width: PERIOD_COL_WIDTH,
+                    minWidth: PERIOD_COL_WIDTH,
+                    maxWidth: PERIOD_COL_WIDTH,
+                    px: 1.25,
+                    py: 0.75,
+                    fontWeight: column.prior ? 400 : 600,
+                    color: column.prior ? 'text.secondary' : 'text.primary',
+                    bgcolor: 'background.paper',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {column.headerName}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {groups.map((group) => {
+              const expanded = !collapsedUtilities.has(group.utility);
+              return (
+                <UtilityGroupRows
+                  key={group.utility}
+                  group={group}
+                  expanded={expanded}
+                  periodColumns={periodColumns}
+                  rows={rows}
+                  baselines={baselines}
+                  baselineMode={baselineMode}
+                  heatmapOn={heatmapOn}
+                  compareLastYear={compareLastYear}
+                  onToggle={() => toggleUtility(group.utility)}
+                  onSelectValue={openSourceDrawer}
+                />
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
       <Drawer
         anchor="right"
         open={sourceDrawerOpen}
@@ -782,5 +884,166 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
         </Stack>
       </Drawer>
     </Box>
+  );
+}
+
+function UtilityGroupRows({
+  group,
+  expanded,
+  periodColumns,
+  rows,
+  baselines,
+  baselineMode,
+  heatmapOn,
+  compareLastYear,
+  onToggle,
+  onSelectValue,
+}: {
+  group: ReturnType<typeof groupRowsByUtility>[number];
+  expanded: boolean;
+  periodColumns: PeriodFieldColumn[];
+  rows: TimelineRow[];
+  baselines: ReturnType<typeof createBaselines>;
+  baselineMode: BaselineMode;
+  heatmapOn: boolean;
+  compareLastYear: boolean;
+  onToggle: () => void;
+  onSelectValue: () => void;
+}) {
+  return (
+    <>
+      <TableRow data-row-type="group" hover={false}>
+        <TableCell className="usage-pinned" sx={{ ...stickyUtilitySx(false), py: 0, px: 1 }}>
+          <Stack direction="row" spacing={0.25} sx={{ alignItems: 'center', minHeight: ROW_HEIGHT }}>
+            <IconButton
+              size="small"
+              aria-label={expanded ? `Collapse ${group.utility}` : `Expand ${group.utility}`}
+              aria-expanded={expanded}
+              onClick={onToggle}
+              sx={{
+                p: 0.25,
+                '@media (prefers-reduced-motion: no-preference)': {
+                  '& .group-chevron': {
+                    transition: 'transform 0.15s cubic-bezier(0.2, 0, 0, 1)',
+                  },
+                },
+              }}
+            >
+              <KeyboardArrowRightIcon
+                className="group-chevron"
+                fontSize="small"
+                sx={{ transform: expanded ? 'rotate(90deg)' : 'none' }}
+              />
+            </IconButton>
+            <Typography component="span" sx={{ fontSize: 13, fontWeight: 650, whiteSpace: 'nowrap' }}>
+              {group.utility}
+            </Typography>
+          </Stack>
+        </TableCell>
+        <TableCell className="usage-pinned" sx={{ ...stickyUnitSx(false), py: 0, px: 1.25, whiteSpace: 'nowrap' }}>
+          {group.unit}
+        </TableCell>
+        {periodColumns.map((column) => {
+          const value = sumFieldSameUnit(group.rows, column.field);
+          const baseline = getUtilityGroupBaseline(
+            baselines,
+            baselineMode,
+            rows,
+            group.utility,
+            column.period,
+            column.prior,
+          );
+          const priorValue =
+            compareLastYear && !column.prior
+              ? fieldSumForUtility(rows, group.utility, column.period.priorField)
+              : undefined;
+          return (
+            <TableCell
+              key={column.field}
+              padding="none"
+              sx={{
+                position: 'relative',
+                zIndex: 0,
+                width: PERIOD_COL_WIDTH,
+                minWidth: PERIOD_COL_WIDTH,
+                maxWidth: PERIOD_COL_WIDTH,
+                height: ROW_HEIGHT,
+                p: 0,
+              }}
+            >
+              <UsageCell
+                value={value}
+                baseline={baseline}
+                mode={baselineMode}
+                applyFill={heatmapOn}
+                muted={column.prior}
+                priorValue={priorValue}
+                showYoyChange={compareLastYear && !column.prior}
+                dataSource={getGroupDataSource(rows, group.utility, column.field)}
+                onSelect={onSelectValue}
+              />
+            </TableCell>
+          );
+        })}
+      </TableRow>
+      {expanded
+        ? group.rows.map((row) => (
+            <TableRow key={row.id} data-row-type="leaf" hover={false}>
+              <TableCell
+                className="usage-pinned"
+                sx={{
+                  ...stickyUtilitySx(false),
+                  py: 0,
+                  pl: 5,
+                  pr: 1.25,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {String(row.property)}
+              </TableCell>
+              <TableCell
+                className="usage-pinned"
+                sx={{ ...stickyUnitSx(false), py: 0, px: 1.25, whiteSpace: 'nowrap' }}
+              >
+                {String(row.unit)}
+              </TableCell>
+              {periodColumns.map((column) => {
+                const value = row[column.field];
+                const numericValue = typeof value === 'number' ? value : null;
+                const priorRaw = row[column.period.priorField];
+                const priorValue =
+                  compareLastYear && !column.prior && typeof priorRaw === 'number' ? priorRaw : undefined;
+                return (
+                  <TableCell
+                    key={column.field}
+                    padding="none"
+                    sx={{
+                      position: 'relative',
+                      zIndex: 0,
+                      width: PERIOD_COL_WIDTH,
+                      minWidth: PERIOD_COL_WIDTH,
+                      maxWidth: PERIOD_COL_WIDTH,
+                      height: ROW_HEIGHT,
+                      p: 0,
+                    }}
+                  >
+                    <UsageCell
+                      value={numericValue}
+                      baseline={getCellBaseline(baselines, baselineMode, row, column.period, column.prior)}
+                      mode={baselineMode}
+                      applyFill={heatmapOn}
+                      muted={column.prior}
+                      priorValue={priorValue}
+                      showYoyChange={compareLastYear && !column.prior}
+                      dataSource={getCellDataSource(row.id, column.field)}
+                      onSelect={onSelectValue}
+                    />
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+          ))
+        : null}
+    </>
   );
 }

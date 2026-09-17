@@ -1,4 +1,3 @@
-import type { GridAggregationFunction } from '@mui/x-data-grid-premium';
 import type { PeriodColumn, TimelineRow } from './parseUsageCsv';
 
 const PREFERRED_UTILITY_ORDER = ['Electricity', 'Water', 'Natural Gas'];
@@ -81,34 +80,34 @@ export function periodVolumes(
   return periods.map((period) => fieldSumForUtility(rows, utilityType, period.field));
 }
 
-
-type ConsumptionCell = {
-  value: number;
+export type UtilityGroup = {
+  utility: string;
   unit: string;
+  rows: TimelineRow[];
 };
 
-export const sumSameUnit: GridAggregationFunction<
-  ConsumptionCell | null,
-  number | null
-> = {
-  label: 'sum',
-  columnTypes: ['number'],
-  apply: ({ values }) => {
-    const present = values.filter((value): value is ConsumptionCell => value != null);
-    if (present.length === 0) {
-      return null;
-    }
-    const units = new Set(present.map((value) => value.unit));
-    if (units.size > 1) {
-      return null;
-    }
-    return present.reduce((total, value) => total + value.value, 0);
-  },
-  getCellValue: ({ row, field }) => {
+export function groupRowsByUtility(rows: TimelineRow[]): UtilityGroup[] {
+  return uniqueUtilities(rows).map((utility) => ({
+    utility,
+    unit: unitForUtility(rows, utility),
+    rows: rows.filter((row) => row.utility_type === utility),
+  }));
+}
+
+export function sumFieldSameUnit(rows: TimelineRow[], field: string): number | null {
+  const present = rows.flatMap((row) => {
     const value = row[field];
     if (typeof value !== 'number' || !row.unit) {
-      return null;
+      return [];
     }
-    return { value, unit: String(row.unit) };
-  },
-};
+    return [{ value, unit: String(row.unit) }];
+  });
+  if (present.length === 0) {
+    return null;
+  }
+  const units = new Set(present.map((item) => item.unit));
+  if (units.size > 1) {
+    return null;
+  }
+  return present.reduce((total, item) => total + item.value, 0);
+}
