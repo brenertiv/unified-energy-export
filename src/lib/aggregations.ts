@@ -1,6 +1,6 @@
 import type { PeriodColumn, TimelineRow } from './parseUsageCsv';
 
-const PREFERRED_UTILITY_ORDER = ['Electricity', 'Water', 'Natural Gas'];
+const PREFERRED_UTILITY_ORDER = ['Electricity', 'Water', 'Natural Gas', 'Energy'];
 
 export function fieldSumForUtility(rows: TimelineRow[], utilityType: string, field: string) {
   return rows

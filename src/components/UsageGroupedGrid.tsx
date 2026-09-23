@@ -1,14 +1,16 @@
 import { useCallback, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
+import Checkbox from '@mui/material/Checkbox';
 import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import FormControl from '@mui/material/FormControl';
 import IconButton from '@mui/material/IconButton';
 import InputLabel from '@mui/material/InputLabel';
-import ListSubheader from '@mui/material/ListSubheader';
+import ListItemText from '@mui/material/ListItemText';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
+import Slider from '@mui/material/Slider';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -38,12 +40,21 @@ import {
   type BaselineMode,
 } from '../lib/baselines';
 import { getCellDataSource, getGroupDataSource, type CellDataSource } from '../lib/dataSource';
-import { heatmapFill } from '../lib/heatmap';
+import {
+  DEFAULT_HEATMAP_HUE,
+  DEFAULT_HEATMAP_THRESHOLD,
+  heatmapAppearance,
+  heatmapLegendGradient,
+  heatmapYoyColor,
+} from '../lib/heatmap';
 import { formatPeriodLabel } from '../lib/periodLabel';
 import type { PeriodColumn, TimelineRow } from '../lib/parseUsageCsv';
 import { defaultWindowRange, type WindowRange } from '../lib/periodWindow';
+import { withSiteEnergyRows } from '../lib/siteEnergy';
 import { type DataMode } from '../lib/weatherNormalize';
+import { PeriodRangePicker } from './PeriodRangePicker';
 import { PeriodWindowSlider } from './PeriodWindowSlider';
+import { ThresholdSlider } from './ThresholdSlider';
 
 const NUMBER_FORMAT = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
@@ -70,6 +81,18 @@ const dataSelectSx = {
 } as const;
 
 const heatmapSelectSx = {
+  ...selectSx,
+  minWidth: 188,
+} as const;
+
+const HUE_SLIDER_TRACK =
+  'linear-gradient(to right in oklab, oklch(0.7 0.16 0), oklch(0.7 0.16 60), oklch(0.7 0.16 120), oklch(0.7 0.16 180), oklch(0.7 0.16 240), oklch(0.7 0.16 300), oklch(0.7 0.16 360))';
+
+function stopMenuEvent(event: { stopPropagation: () => void }) {
+  event.stopPropagation();
+}
+
+const utilitySelectSx = {
   ...selectSx,
   minWidth: 160,
 } as const;
@@ -193,15 +216,6 @@ function UsageCellTooltip({
   );
 }
 
-function yoyChangeColor(relative: number) {
-  if (relative < 0) {
-    return 'oklch(0.4 0.12 255)';
-  }
-  if (relative > 0) {
-    return 'oklch(0.45 0.13 25)';
-  }
-  return 'text.secondary';
-}
 
 function periodRangeDescription(start?: Date, end?: Date) {
   if (!start || !end) {
@@ -308,6 +322,8 @@ function UsageCell({
   mode,
   applyFill,
   muted,
+  heatmapHue,
+  heatmapThreshold,
   priorValue,
   showYoyChange,
   dataSource,
@@ -318,6 +334,8 @@ function UsageCell({
   mode: BaselineMode;
   applyFill: boolean;
   muted: boolean;
+  heatmapHue: number;
+  heatmapThreshold: number;
   priorValue?: number;
   showYoyChange: boolean;
   dataSource: CellDataSource;
@@ -327,7 +345,8 @@ function UsageCell({
   const formatted = formatConsumption(hasValue ? value : undefined);
   const yoy = hasValue && showYoyChange ? yoyChange(value, priorValue) : undefined;
   const relative = hasValue ? relativeToBaseline(value, baseline) : null;
-  const fill = applyFill && hasValue ? heatmapFill(relative) : undefined;
+  const appearance = applyFill && hasValue ? heatmapAppearance(relative, muted, heatmapHue, heatmapThreshold) : { invert: false };
+  const fill = appearance.fill;
   const tooltip = hasValue ? (
     <UsageCellTooltip
       dataSource={dataSource}
@@ -351,7 +370,7 @@ function UsageCell({
             fontWeight: 500,
             whiteSpace: 'nowrap',
             fontVariantNumeric: 'tabular-nums',
-            color: yoyChangeColor(yoy.relative),
+            color: heatmapYoyColor(yoy.relative, applyFill ? relative : null, heatmapHue, heatmapThreshold) ?? 'text.secondary',
           }}
         >
           {yoy.label}
@@ -372,8 +391,8 @@ function UsageCell({
     px: '10px',
     bgcolor: 'transparent',
     backgroundImage: fill ? `linear-gradient(${fill}, ${fill})` : 'none',
-    color: muted && !fill ? 'text.secondary' : 'text.primary',
-    opacity: muted ? 0.5 : 1,
+    color: fill ? appearance.color : muted ? 'text.secondary' : 'text.primary',
+    opacity: muted && !fill ? 0.5 : 1,
     overflow: 'hidden',
   } as const;
 
@@ -404,7 +423,6 @@ function UsageCell({
             font: 'inherit',
             textAlign: 'right',
             cursor: 'pointer',
-            color: 'inherit',
           }}
         >
           {content}
@@ -426,18 +444,33 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
   const [dataMode, setDataMode] = useState<DataMode>('actual');
   const [compareLastYear, setCompareLastYear] = useState(false);
   const [heatmapOn, setHeatmapOn] = useState(false);
+  const [heatmapHue, setHeatmapHue] = useState(DEFAULT_HEATMAP_HUE);
+  const [heatmapThreshold, setHeatmapThreshold] = useState(DEFAULT_HEATMAP_THRESHOLD);
   const [baselineMode, setBaselineMode] = useState<BaselineMode>('building');
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false);
   const [windowRange, setWindowRange] = useState<WindowRange>(() => defaultWindowRange(periods.length));
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState<HTMLElement | null>(null);
   const [selectedUtility, setSelectedUtility] = useState('Electricity');
+  const [selectedUtilities, setSelectedUtilities] = useState<string[]>([]);
   const [collapsedUtilities, setCollapsedUtilities] = useState<Set<string>>(() => new Set());
 
-  const rows = dataMode === 'normalized' ? normalizedRows : actualRows;
+  const sourceRows = dataMode === 'normalized' ? normalizedRows : actualRows;
+  const rows = useMemo(() => withSiteEnergyRows(sourceRows, periods), [periods, sourceRows]);
   const baselines = useMemo(() => createBaselines(rows, periods), [rows, periods]);
   const utilities = useMemo(() => uniqueUtilities(rows), [rows]);
   const groups = useMemo(() => groupRowsByUtility(rows), [rows]);
-  const volumeUtility = utilities.includes(selectedUtility) ? selectedUtility : (utilities[0] ?? '');
+  const currentSelection = selectedUtilities.length === 0 ? utilities : selectedUtilities;
+  const visibleUtilities = useMemo(() => {
+    const selected = utilities.filter((utility) => currentSelection.includes(utility));
+    return selected.length > 0 ? selected : utilities;
+  }, [currentSelection, utilities]);
+  const visibleGroups = useMemo(
+    () => groups.filter((group) => visibleUtilities.includes(group.utility)),
+    [groups, visibleUtilities],
+  );
+  const volumeUtility = visibleUtilities.includes(selectedUtility)
+    ? selectedUtility
+    : (visibleUtilities[0] ?? '');
   const volumes = useMemo(
     () => periodVolumes(rows, periods, volumeUtility),
     [periods, rows, volumeUtility],
@@ -511,14 +544,30 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
     setSourceDrawerOpen(true);
   }, []);
 
-  const anyGroupExpanded = groups.some((group) => !collapsedUtilities.has(group.utility));
+  const anyGroupExpanded = visibleGroups.some((group) => !collapsedUtilities.has(group.utility));
 
   const setAllGroupExpansion = useCallback(
     (expanded: boolean) => {
-      setCollapsedUtilities(expanded ? new Set() : new Set(utilities));
+      setCollapsedUtilities(expanded ? new Set() : new Set(visibleUtilities));
     },
-    [utilities],
+    [visibleUtilities],
   );
+
+  const handleUtilitySelection = useCallback((next: string[]) => {
+    const allowed = next.filter((utility) => utilities.includes(utility));
+    if (allowed.length === 0) {
+      return;
+    }
+    const added = allowed.find((utility) => !currentSelection.includes(utility));
+    setSelectedUtilities(allowed);
+    if (added) {
+      setSelectedUtility(added);
+      return;
+    }
+    if (!allowed.includes(selectedUtility)) {
+      setSelectedUtility(allowed[allowed.length - 1] ?? allowed[0]);
+    }
+  }, [currentSelection, selectedUtility, utilities]);
 
   const toggleUtility = useCallback((utility: string) => {
     setCollapsedUtilities((current) => {
@@ -534,7 +583,7 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
 
   const exportRows = useCallback(() => {
     const headers = ['Utility', 'Building', 'Unit', ...periodColumns.map((column) => column.exportHeaderName)];
-    const data = groups.flatMap((group) =>
+    const data = visibleGroups.flatMap((group) =>
       group.rows.map((row) => [
         group.utility,
         String(row.property),
@@ -546,7 +595,7 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
       ]),
     );
     return { headers, data };
-  }, [groups, periodColumns]);
+  }, [periodColumns, visibleGroups]);
 
   const downloadCsv = useCallback(() => {
     const { headers, data } = exportRows();
@@ -581,6 +630,39 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
           rowGap: 1,
         }}
       >
+        <FormControl size="small" sx={utilitySelectSx}>
+          <InputLabel id="utility-filter-label">Utility</InputLabel>
+          <Select
+            labelId="utility-filter-label"
+            label="Utility"
+            multiple
+            value={visibleUtilities}
+            onChange={(event) => {
+              const value = event.target.value;
+              handleUtilitySelection(typeof value === 'string' ? value.split(',') : value);
+            }}
+            renderValue={(selected) => {
+              if (selected.length === utilities.length) {
+                return 'All';
+              }
+              if (selected.length === 1) {
+                return selected[0];
+              }
+              return `${selected.length} selected`;
+            }}
+          >
+            {utilities.map((utility) => (
+              <MenuItem
+                key={utility}
+                value={utility}
+                disabled={visibleUtilities.length === 1 && visibleUtilities[0] === utility}
+              >
+                <Checkbox size="small" checked={visibleUtilities.includes(utility)} sx={{ py: 0 }} />
+                <ListItemText primary={utility} primaryTypographyProps={{ sx: { fontSize: 13 } }} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
         <FormControl size="small" sx={dataSelectSx}>
           <InputLabel id="data-mode-label">Data</InputLabel>
           <Select
@@ -611,36 +693,89 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
               setBaselineMode(value);
               setHeatmapOn(true);
             }}
+            MenuProps={{
+              PaperProps: { sx: { minWidth: 248 } },
+            }}
           >
             <MenuItem value="off">Off</MenuItem>
             <MenuItem value="building">Building avg</MenuItem>
             <MenuItem value="peer">Peer avg</MenuItem>
             <Divider />
-            <ListSubheader
-              disableSticky
-              sx={{ lineHeight: 'unset', py: 0.5, pointerEvents: 'none' }}
+            <Box
+              component="li"
+              role="presentation"
+              sx={{ listStyle: 'none', py: 1, px: 2 }}
+              onMouseDown={stopMenuEvent}
+              onClick={stopMenuEvent}
             >
-              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
-                <Typography variant="caption" color="text.secondary">
-                  Less
-                </Typography>
-                <Box
-                  aria-hidden
-                  sx={{
-                    width: 72,
-                    height: 8,
-                    borderRadius: 99,
-                    background:
-                      'linear-gradient(to right in oklab, oklch(0.8 0.12 255), oklch(0.97 0.005 0), oklch(0.8 0.12 25))',
-                  }}
-                />
-                <Typography variant="caption" color="text.secondary">
-                  More
-                </Typography>
+              <Stack spacing={1}>
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Below
+                  </Typography>
+                  <Box
+                    aria-hidden
+                    sx={{
+                      flex: 1,
+                      height: 8,
+                      borderRadius: 99,
+                      background: heatmapLegendGradient(heatmapHue),
+                    }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Above
+                  </Typography>
+                </Stack>
+                <Box>
+                  <Typography
+                    id="heatmap-hue-label"
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', mb: 0.25 }}
+                  >
+                    Hue
+                  </Typography>
+                  <Slider
+                    size="small"
+                    min={0}
+                    max={360}
+                    step={1}
+                    value={heatmapHue}
+                    onChange={(_event, value) => {
+                      if (typeof value === 'number') {
+                        setHeatmapHue(value);
+                      }
+                    }}
+                    aria-labelledby="heatmap-hue-label"
+                    getAriaValueText={(value) => `${value} degrees`}
+                    onKeyDown={stopMenuEvent}
+                    sx={{
+                      py: 1,
+                      '& .MuiSlider-rail': {
+                        height: 8,
+                        borderRadius: 99,
+                        opacity: 1,
+                        background: HUE_SLIDER_TRACK,
+                      },
+                      '& .MuiSlider-track': {
+                        display: 'none',
+                      },
+                      '& .MuiSlider-thumb': {
+                        width: 16,
+                        height: 16,
+                        bgcolor: `oklch(0.62 0.18 ${heatmapHue})`,
+                        border: '2px solid #fff',
+                        boxShadow: '0 0 0 1px oklch(0 0 0 / 0.22)',
+                      },
+                    }}
+                  />
+                </Box>
+                <ThresholdSlider value={heatmapThreshold} onChange={setHeatmapThreshold} />
               </Stack>
-            </ListSubheader>
+            </Box>
           </Select>
         </FormControl>
+        <PeriodRangePicker periods={periods} value={windowRange} onChange={setWindowRange} />
         <Box sx={{ flex: 1 }} />
         <ToggleButton
           size="small"
@@ -696,9 +831,6 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
         value={windowRange}
         onChange={setWindowRange}
         volumes={volumes}
-        utilities={utilities}
-        selectedUtility={volumeUtility}
-        onUtilityChange={setSelectedUtility}
       />
       <TableContainer sx={{ flex: 1, minHeight: 0, isolation: 'isolate' }}>
         <Table
@@ -810,7 +942,7 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
             </TableRow>
           </TableHead>
           <TableBody>
-            {groups.map((group) => {
+            {visibleGroups.map((group) => {
               const expanded = !collapsedUtilities.has(group.utility);
               return (
                 <UtilityGroupRows
@@ -822,6 +954,8 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
                   baselines={baselines}
                   baselineMode={baselineMode}
                   heatmapOn={heatmapOn}
+                  heatmapHue={heatmapHue}
+                  heatmapThreshold={heatmapThreshold}
                   compareLastYear={compareLastYear}
                   onToggle={() => toggleUtility(group.utility)}
                   onSelectValue={openSourceDrawer}
@@ -878,6 +1012,8 @@ function UtilityGroupRows({
   baselines,
   baselineMode,
   heatmapOn,
+  heatmapHue,
+  heatmapThreshold,
   compareLastYear,
   onToggle,
   onSelectValue,
@@ -889,6 +1025,8 @@ function UtilityGroupRows({
   baselines: ReturnType<typeof createBaselines>;
   baselineMode: BaselineMode;
   heatmapOn: boolean;
+  heatmapHue: number;
+  heatmapThreshold: number;
   compareLastYear: boolean;
   onToggle: () => void;
   onSelectValue: () => void;
@@ -958,6 +1096,8 @@ function UtilityGroupRows({
                 mode={baselineMode}
                 applyFill={heatmapOn}
                 muted={column.prior}
+                heatmapHue={heatmapHue}
+                heatmapThreshold={heatmapThreshold}
                 priorValue={priorValue}
                 showYoyChange={compareLastYear && !column.prior}
                 dataSource={getGroupDataSource(rows, group.utility, column.field)}
@@ -1008,6 +1148,8 @@ function UtilityGroupRows({
                       mode={baselineMode}
                       applyFill={heatmapOn}
                       muted={column.prior}
+                      heatmapHue={heatmapHue}
+                      heatmapThreshold={heatmapThreshold}
                       priorValue={priorValue}
                       showYoyChange={compareLastYear && !column.prior}
                       dataSource={getCellDataSource(row.id, column.field)}

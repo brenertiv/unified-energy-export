@@ -7,11 +7,13 @@ import { UsageGroupedGrid } from './components/UsageGroupedGrid';
 import { completeBuildingUtilityRows } from './lib/aggregations';
 import { extendPriorYear } from './lib/extendPriorYear';
 import { parseUsageCsv, toTimelineRows } from './lib/parseUsageCsv';
+import { withSiteEnergyRows } from './lib/siteEnergy';
 import { weatherNormalizeRows } from './lib/weatherNormalize';
 
 const { rows: sparseRows, periods } = toTimelineRows(extendPriorYear(parseUsageCsv(csvText)));
-const actualRows = completeBuildingUtilityRows(sparseRows);
-const normalizedRows = weatherNormalizeRows(actualRows, periods);
+const completedRows = completeBuildingUtilityRows(sparseRows);
+const actualRows = withSiteEnergyRows(completedRows, periods);
+const normalizedRows = withSiteEnergyRows(weatherNormalizeRows(completedRows, periods), periods);
 
 const theme = createTheme({
   palette: {

@@ -1,5 +1,46 @@
+import type { PeriodColumn } from './parseUsageCsv';
+
 export type WindowPreset = 6 | 12;
 export type WindowRange = [number, number];
+
+export function toDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function fromDateInputValue(value: string): Date | undefined {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    return undefined;
+  }
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+export function rangeFromDates(periods: PeriodColumn[], startDate: Date, endDate: Date): WindowRange {
+  if (periods.length === 0) {
+    return [0, 0];
+  }
+
+  const startMs = Math.min(startDate.getTime(), endDate.getTime());
+  const endMs = Math.max(startDate.getTime(), endDate.getTime());
+
+  let startIndex = periods.findIndex((period) => period.end.getTime() >= startMs);
+  if (startIndex < 0) {
+    startIndex = periods.length - 1;
+  }
+
+  let endIndex = 0;
+  for (let index = periods.length - 1; index >= 0; index -= 1) {
+    if (periods[index].start.getTime() <= endMs) {
+      endIndex = index;
+      break;
+    }
+  }
+
+  return startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
+}
 
 export function presetFromRange(startIndex: number, endIndex: number): WindowPreset | null {
   const length = endIndex - startIndex + 1;

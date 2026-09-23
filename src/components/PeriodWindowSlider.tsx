@@ -40,9 +40,6 @@ type PeriodWindowSliderProps = {
   value: WindowRange;
   onChange: (value: WindowRange) => void;
   volumes: number[];
-  utilities: string[];
-  selectedUtility: string;
-  onUtilityChange: (utility: string) => void;
 };
 
 function periodEdgeLabel(periods: PeriodColumn[], periodIndex: number, thumbIndex: number) {
@@ -109,9 +106,6 @@ export function PeriodWindowSlider({
   value,
   onChange,
   volumes,
-  utilities,
-  selectedUtility,
-  onUtilityChange,
 }: PeriodWindowSliderProps) {
   const sliderRef = useRef<HTMLDivElement>(null);
   const panRef = useRef<{
@@ -165,10 +159,6 @@ export function PeriodWindowSlider({
     onChange(applyPreset(value[1], months, lastIndex));
   };
 
-  const handleUtility = (utility: string) => {
-    onUtilityChange(utility);
-  };
-
   const handleTrackPointerDown = (event: PointerEvent<HTMLSpanElement>) => {
     if (event.button !== 0 || disabled) {
       return;
@@ -217,15 +207,7 @@ export function PeriodWindowSlider({
         borderColor: 'divider',
       }}
     >
-      <Stack
-        direction="row"
-        sx={{
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          columnGap: 1.5,
-          rowGap: 1,
-        }}
-      >
+      <Stack direction="row" sx={{ alignItems: 'center' }}>
         <Typography
           id="date-window-label"
           variant="caption"
@@ -235,8 +217,16 @@ export function PeriodWindowSlider({
           {rangeText}
         </Typography>
         <Box sx={{ flex: 1, minWidth: 12 }} />
-        <Stack direction="row" sx={{ alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <Stack direction="row" sx={{ gap: '2px' }} role="group" aria-label="Window length">
+        <Stack direction="row" sx={{ alignItems: 'center', gap: 0.75 }}>
+          <Typography
+            id="window-length-label"
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontSize: 11, lineHeight: 1.2, whiteSpace: 'nowrap' }}
+          >
+            Window
+          </Typography>
+          <Stack direction="row" sx={{ gap: '2px' }} role="group" aria-labelledby="window-length-label">
             <Button
               size="small"
               variant="text"
@@ -262,24 +252,6 @@ export function PeriodWindowSlider({
               12 months
             </Button>
           </Stack>
-          {utilities.length > 0 ? (
-            <Stack direction="row" sx={{ gap: '2px' }} role="group" aria-label="Volume utility">
-              {utilities.map((utility) => (
-                <Button
-                  key={utility}
-                  size="small"
-                  variant="text"
-                  color="inherit"
-                  disableElevation
-                  aria-pressed={utility === selectedUtility}
-                  onClick={() => handleUtility(utility)}
-                  sx={selectorButtonSx(utility === selectedUtility)}
-                >
-                  {utility}
-                </Button>
-              ))}
-            </Stack>
-          ) : null}
         </Stack>
       </Stack>
       <Box
