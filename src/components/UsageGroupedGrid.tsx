@@ -658,7 +658,7 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
                 disabled={visibleUtilities.length === 1 && visibleUtilities[0] === utility}
               >
                 <Checkbox size="small" checked={visibleUtilities.includes(utility)} sx={{ py: 0 }} />
-                <ListItemText primary={utility} primaryTypographyProps={{ sx: { fontSize: 13 } }} />
+                <ListItemText primary={utility} slotProps={{ primary: { sx: { fontSize: 13 } } }} />
               </MenuItem>
             ))}
           </Select>
@@ -694,7 +694,7 @@ export function UsageGroupedGrid({ actualRows, normalizedRows, periods }: UsageG
               setHeatmapOn(true);
             }}
             MenuProps={{
-              PaperProps: { sx: { minWidth: 248 } },
+              slotProps: { paper: { sx: { minWidth: 248 } } },
             }}
           >
             <MenuItem value="off">Off</MenuItem>

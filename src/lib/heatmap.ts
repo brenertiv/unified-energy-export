@@ -9,7 +9,6 @@ const MIN_INTENSITY = 0.1;
 const WCAG_AA_TEXT = 4.5;
 const SURFACE: Rgb = [1, 1, 1];
 const INK_DARK: Rgb = [0, 0, 0];
-const INK_LIGHT: Rgb = [1, 1, 1];
 const INK_DARK_CSS = 'oklch(0.2 0 0)';
 const INK_LIGHT_CSS = 'oklch(1 0 0)';
 
@@ -175,7 +174,7 @@ export function heatmapAppearance(
   moreHue = DEFAULT_HEATMAP_HUE,
   threshold = DEFAULT_HEATMAP_THRESHOLD,
 ): { fill?: string; color?: string; invert: boolean } {
-  if (!heatmapPassesThreshold(relative, threshold)) {
+  if (relative == null || !heatmapPassesThreshold(relative, threshold)) {
     return { invert: false };
   }
   const swatch = swatchForRelative(relative, muted ? 0.5 : 1, moreHue, threshold);
